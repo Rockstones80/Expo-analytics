@@ -48,11 +48,14 @@ const sensorConfig = {
       issueDuration: 45, // How long issues last (in seconds)
     },
     waterPressure: {
-      normalRange: [40, 60], // PSI
-      warningThresholdLow: 30, // PSI
+      // normalRange: [40, 60], // PSI
+      normalRange: [40, 50], // PSI
+      // warningThresholdLow: 30, // PSI
+      warningThresholdLow: 40, // PSI
       criticalThresholdLow: 20, // PSI
       warningThresholdHigh: 70, // PSI
-      criticalThresholdHigh: 80, // PSI
+      // criticalThresholdHigh: 80, // PSI
+      criticalThresholdHigh: 47, // PSI
       variability: 2, // Random noise
       simulatePressureIssues: true, // Whether to simulate pressure issues
       issueInterval: 240, // How often to simulate pressure issues (in seconds)

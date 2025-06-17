@@ -1,255 +1,401 @@
-import React, {useState, useMemo} from 'react';
-import { FlatList, Text, View, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useSensor } from '@/hooks/SensorContext';
+import { useSensor } from "@/hooks/SensorContext";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  ListRenderItem,
+  RefreshControl,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
 
 
 const HistoryScreen = () => {
-  const [timeFilter, setTimeFilter] = useState('all');
+  const [timeFilter, setTimeFilter] = ("all");
+  const [refreshing, setRefreshing] = useState(false);
+  const [historySnapshots, setHistorySnapshots] = useState([]);
+  const [expandedItems, setExpandedItems] = useState(new Set());
   const { sensorData, loading, error } = useSensor();
-  // const [data, setData] = useState([]);
-  // const [loading, setLoading] = useState(false);
 
-//   useEffect(() => {
-//     const fetchData = async () => {
-//       try {
-//         setLoading(true)
-//         const response = await fetch("http://localhost:5000/api/sensors");
-//         const result = await response.json();
-//         setData(result.sensors);
-//         setLoading(false)
-//         console.log(result);
-//       } catch (error) {
-//         console.error("Error fetching data:", error);
-//       } finally {
-//         setLoading(false);
-//       }
-//     };
+  // Ref for the FlatList to control scrolling
+  const flatListRef = useRef(null);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
 
-//     fetchData();
+  // Store complete sensor snapshots whenever data updates
+  useEffect(() => {
+    if (sensorData && Object.keys(sensorData).length > 0) {
+      const currentTime = new Date();
+      const snapshot = {
+        id: `snapshot-${currentTime.getTime()}-${Math.random()}`,
+        timestamp: currentTime.getTime(),
+        date: currentTime.toLocaleDateString(),
+        time: currentTime.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        }),
+        sensors: { ...sensorData },
+      };
 
-//     const interval = setInterval(fetchData, 5000);
+      setHistorySnapshots((prevSnapshots) => {
+        const updated = [snapshot, ...prevSnapshots];
+        return updated.slice(0, 50);
+      });
 
-//     return () => clearInterval(interval);
-// }, []);
+      if (shouldAutoScroll && flatListRef.current) {
+        setTimeout(() => {
+          flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+        }, 100);
+      }
+    }
+  }, [sensorData, shouldAutoScroll]);
 
-  // Sample history data
-  const filteredData = useMemo(() => {
-    // const historyData = [
-    //   {
-    //     id: '1',
-    //     date: '2025-05-28',
-    //     time: '09:00 AM',
-    //     flowRate: 24.5,
-    //     waterLevel: 67,
-    //     waterPressure: 1012.5
-    //   },
-    //   {
-    //     id: '2',
-    //     date: '2025-05-26',
-    //     time: '06:00 AM',
-    //     flowRate: 22.8,
-    //     waterLevel: 70,
-    //     waterPressure: 1013.1
-    //   },
-    //   {
-    //     id: '3',
-    //     date: '2025-05-27',
-    //     time: '09:00 PM',
-    //     flowRate: 21.5,
-    //     waterLevel: 72,
-    //     waterPressure: 1014.2
-    //   },
-    //   {
-    //     id: '4',
-    //     date: '2025-05-25',
-    //     time: '06:00 PM',
-    //     flowRate: 23.7,
-    //     waterLevel: 65,
-    //     waterPressure: 1013.8
-    //   },
-    //   {
-    //     id: '5',
-    //     date: '2025-05-25',
-    //     time: '03:00 PM',
-    //     flowRate: 25.2,
-    //     waterLevel: 62,
-    //     waterPressure: 1012.9
-    //   },
-    //   {
-    //     id: '6',
-    //     date: '2025-05-25',
-    //     time: '12:00 PM',
-    //     flowRate: 26.1,
-    //     waterLevel: 60,
-    //     waterPressure: 1012.0
-    //   },
-    //   {
-    //     id: '7',
-    //     date: '2025-05-25',
-    //     time: '09:00 AM',
-    //     flowRate: 23.9,
-    //     waterLevel: 68,
-    //     waterPressure: 1011.5
-    //   },
-    //   {
-    //     id: '8',
-    //     date: '2025-05-25',
-    //     time: '06:00 AM',
-    //     flowRate: 22.0,
-    //     waterLevel: 71,
-    //     waterPressure: 1010.8
-    //   },
-    //   {
-    //     id: '9',
-    //     date: '2025-05-24',
-    //     time: '09:00 PM',
-    //     flowRate: 21.2,
-    //     waterLevel: 73,
-    //     waterPressure: 1011.2
-    //   },
-    //   {
-    //     id: '10',
-    //     date: '2025-05-20',
-    //     time: '06:00 PM',
-    //     flowRate: 22.8,
-    //     waterLevel: 69,
-    //     waterPressure: 1012.4
-    //   }
-    // ];  
-    
+  // Filter snapshots based on time selection
+  const filteredSnapshots = useMemo(() => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    // console.log(today)
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const thisWeek = new Date(today);
-    thisWeek.setDate(thisWeek.getDate() - 7);
+    const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+    const thisWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    return Object.entries(sensorData).filter(([_, data]) => {
-      const itemDate = new Date(data.time);
-      // console.log(itemDate)
+    return historySnapshots.filter((snapshot) => {
+      const snapshotDate = new Date(snapshot.timestamp);
+
       switch (timeFilter) {
-        case 'today':
-          return itemDate.getFullYear() === today.getFullYear() &&
-                 itemDate.getMonth() === today.getMonth() &&
-                 itemDate.getDate() === today.getDate();
-        case 'yesterday':
-          return itemDate.getFullYear() === yesterday.getFullYear() &&
-                 itemDate.getMonth() === yesterday.getMonth() &&
-                 itemDate.getDate() === yesterday.getDate();
-        case 'thisWeek':
-          return itemDate >= thisWeek;
+        case "today":
+          return snapshotDate >= today;
+        case "yesterday":
+          return snapshotDate >= yesterday && snapshotDate < today;
+        case "thisWeek":
+          return snapshotDate >= thisWeek;
+        case "all":
         default:
-          return true; // 'all' case
+          return true;
       }
     });
-  }, [timeFilter, sensorData]);
+  }, [historySnapshots, timeFilter]);
 
-  // Function to render each history item
-  const renderHistoryItem = ({ item }) => {
-    const [sensorName, sensorData] = item;
-    return (
-      <View className="bg-[#F7F7F7] rounded-lg shadow-lg shadow-gray-100 p-4 mb-6">
-        <View className="flex-row justify-between mb-2">
-          <Text className="text-[#0A1931] text-base font-medium">{sensorName}</Text>
-          <Text className="text-gray-600 text-xs">{sensorData.time}</Text>
-        </View>
-        
-        <View className="flex-row mt-2">
-          <View className="flex-1">
-            <Text className="text-gray-500 text-xs">Value</Text>
-            <Text className="text-blue-500 font-medium">
-              {sensorData.value} {sensorData.unit}
-            </Text>
-          </View>
-          
-          <View className="flex-1">
-            <Text className="text-gray-500 text-xs">Status</Text>
-            <Text className="text-[#2FCA91] font-medium">{sensorData.status}</Text>
-          </View>
-          
-          <View className="flex-1">
-            <Text className="text-gray-500 text-xs">Trend</Text>
-            <Text className="text-purple-500 font-medium">{sensorData.trend}</Text>
-          </View>
-        </View>
-      </View>
-    );
-  }
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
 
-  const TimeFilterButton = ({ title, value }) => (
+    if (flatListRef.current) {
+      flatListRef.current.scrollToOffset({ offset: 0, animated: true });
+    }
+
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  }, []);
+
+  const handleScroll = (event) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    setShouldAutoScroll(offsetY < 50);
+  };
+
+  const toggleExpanded = (itemId) => {
+    setExpandedItems((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId);
+      } else {
+        newSet.add(itemId);
+      }
+      return newSet;
+    });
+  };
+
+  const TimeFilterButton = ({
+    title,
+    value,
+  }) => (
     <TouchableOpacity
-      onPress={() => setTimeFilter(value)}
+      onPress={() => {
+        setTimeFilter(value);
+        if (flatListRef.current) {
+          flatListRef.current.scrollToOffset({ offset: 0, animated: true });
+        }
+      }}
       className={`px-4 py-2 rounded-2xl shadow-md shadow-gray-100 mr-2 ${
-        timeFilter === value ? 'bg-[#2FCA91]' : 'bg-white border border-gray-100'
+        timeFilter === value
+          ? "bg-[#2FCA91]"
+          : "bg-white border border-gray-100"
       }`}
     >
-      <Text className={`${timeFilter === value ? 'text-white' : 'text-gray-700'} text-sm font-medium`}>
+      <Text
+        className={`${
+          timeFilter === value ? "text-white" : "text-gray-700"
+        } text-sm font-medium`}
+      >
         {title}
       </Text>
     </TouchableOpacity>
   );
 
-  if (loading) {
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case "normal":
+        return "text-green-600";
+      case "warning":
+        return "text-yellow-600";
+      case "critical":
+        return "text-red-600";
+      default:
+        return "text-gray-600";
+    }
+  };
+
+  const getStatusBgColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case "normal":
+        return "bg-green-50 border-green-200";
+      case "warning":
+        return "bg-yellow-50 border-yellow-200";
+      case "critical":
+        return "bg-red-50 border-red-200";
+      default:
+        return "bg-gray-50 border-gray-200";
+    }
+  };
+
+  const renderHistorySnapshot = ({
+    item,
+    index,
+  }) => {
+    const isExpanded = expandedItems.has(item.id);
+    const sensors = Object.entries(item.sensors);
+
+    const overallStatus = sensors.reduce((worst, [, sensor]) => {
+      const status = sensor.status?.toLowerCase();
+      if (status === "critical") return "critical";
+      if (status === "warning" && worst !== "critical") return "warning";
+      if (worst === "") return status || "normal";
+      return worst;
+    }, "");
+
     return (
-      <View className="flex-1 justify-center items-center">
-        <ActivityIndicator size="large" color="#0000ff" />
-      </View>
+      <TouchableOpacity
+        onPress={() => toggleExpanded(item.id)}
+        className={`mx-4 mb-3 rounded-lg border ${getStatusBgColor(
+          overallStatus
+        )} shadow-sm`}
+        activeOpacity={0.7}
+      >
+        {/* Header - Always Visible */}
+        <View className="p-4">
+          <View className="flex-row justify-between items-center mb-2">
+            <Text className="text-lg font-semibold text-gray-800">
+              Reading #{filteredSnapshots.length - index}
+            </Text>
+            <View className="flex-row items-center">
+              <View
+                className={`px-2 py-1 rounded-full ${getStatusBgColor(
+                  overallStatus
+                )}`}
+              >
+                <Text
+                  className={`text-xs font-medium ${getStatusColor(
+                    overallStatus
+                  )}`}
+                >
+                  {overallStatus?.toUpperCase() || "UNKNOWN"}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          <View className="flex-row justify-between items-center mb-3">
+            <Text className="text-sm text-gray-600">{item.date}</Text>
+            <Text className="text-sm text-gray-600">{item.time}</Text>
+          </View>
+
+          {/* Summary View - Quick Overview */}
+          <View className="flex-row justify-between">
+            {sensors.map(([sensorName, data]) => (
+              <View key={sensorName} className="flex-1 items-center">
+                <Text className="text-xs text-gray-500 mb-1">{sensorName}</Text>
+                <Text className="text-sm font-medium text-gray-800">
+                  {data.value} {data.unit}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          <View className="flex-row justify-center mt-3">
+            <Text className="text-xs text-gray-500">
+              {isExpanded ? "Tap to collapse" : "Tap for details"}
+            </Text>
+          </View>
+        </View>
+
+        {/* Expanded Details */}
+        {isExpanded && (
+          <View className="border-t border-gray-200 bg-white">
+            <View className="p-4">
+              <Text className="text-lg font-semibold mb-4 text-gray-800">
+                Detailed Breakdown
+              </Text>
+
+              {sensors.map(([sensorName, data]) => (
+                <View
+                  key={sensorName}
+                  className="mb-4 p-3 bg-gray-50 rounded-lg"
+                >
+                  <View className="flex-row justify-between items-center mb-2">
+                    <Text className="text-base font-medium text-gray-800">
+                      {sensorName}
+                    </Text>
+                    <View
+                      className={`px-2 py-1 rounded-full ${getStatusBgColor(
+                        data.status
+                      )}`}
+                    >
+                      <Text
+                        className={`text-xs font-medium ${getStatusColor(
+                          data.status
+                        )}`}
+                      >
+                        {data.status?.toUpperCase() || "N/A"}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View className="flex-row justify-between items-center">
+                    <Text className="text-2xl font-bold text-gray-800">
+                      {data.value}
+                    </Text>
+                    <Text className="text-lg text-gray-600">{data.unit}</Text>
+                  </View>
+
+                  {data.additionalInfo && (
+                    <View className="mt-2 pt-2 border-t border-gray-200">
+                      <Text className="text-xs text-gray-500">
+                        Additional Info: {data.additionalInfo}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              ))}
+
+              <View className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <Text className="text-sm font-medium text-blue-800 mb-1">
+                  Recording Details
+                </Text>
+                <Text className="text-xs text-blue-600">
+                  Recorded: {item.date} at {item.time}
+                </Text>
+                <Text className="text-xs text-blue-600">
+                  Timestamp: {item.timestamp}
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
+
+  if (loading && historySnapshots.length === 0) {
+    return (
+      <SafeAreaView className="flex-1 bg-white">
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#2FCA91" />
+          <Text className="mt-2 text-gray-600">Loading sensor history...</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   if (error) {
     return (
-      <View className="flex-1 justify-center items-center">
-        <Text className="text-red-500">Error: {error}</Text>
-      </View>
+      <SafeAreaView className="flex-1 bg-white">
+        <View className="flex-1 justify-center items-center p-4">
+          <Text className="text-red-500 text-center mb-4">Error: {error}</Text>
+          <TouchableOpacity
+            onPress={onRefresh}
+            className="bg-[#2FCA91] px-4 py-2 rounded-lg"
+          >
+            <Text className="text-white font-medium">Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     );
   }
 
-
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <View className="p-4 flex-1">
-        <Text className="text-3xl font-bold mb-4">History</Text>
-        
-        {/* Filter options */}
-        <View className="flex-row mb-8">
-          <TimeFilterButton title="All" value="all" />
-          <TimeFilterButton title="Today" value="today" />
-          <TimeFilterButton title="Yesterday" value="yesterday" />
-          <TimeFilterButton title="This Week" value="thisWeek" />
+    <SafeAreaView className="flex-1 bg-gray-100">
+      <View className="flex-1">
+        {/* Header */}
+        <View className="bg-white p-4 border-b border-gray-200">
+          <View className="flex-row justify-between items-center mb-2">
+            <Text className="text-3xl font-bold">History</Text>
+            <TouchableOpacity
+              onPress={() => {
+                setShouldAutoScroll(!shouldAutoScroll);
+                if (!shouldAutoScroll && flatListRef.current) {
+                  flatListRef.current.scrollToOffset({
+                    offset: 0,
+                    animated: true,
+                  });
+                }
+              }}
+              className={`px-3 py-1 rounded-full ${
+                shouldAutoScroll ? "bg-green-100" : "bg-gray-100"
+              }`}
+            >
+              <Text
+                className={`text-xs font-medium ${
+                  shouldAutoScroll ? "text-green-700" : "text-gray-600"
+                }`}
+              >
+                Auto-scroll {shouldAutoScroll ? "ON" : "OFF"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <Text className="text-gray-600 mb-4">
+            {filteredSnapshots.length} reading
+            {filteredSnapshots.length !== 1 ? "s" : ""} recorded
+          </Text>
+
+          {/* Filter options */}
+          <View className="flex-row">
+            <TimeFilterButton title="All" value="all" />
+            <TimeFilterButton title="Today" value="today" />
+            <TimeFilterButton title="Yesterday" value="yesterday" />
+            <TimeFilterButton title="This Week" value="thisWeek" />
+          </View>
         </View>
 
-        
-        {/* History list */}
+        {/* History List */}
         <FlatList
-          data={filteredData}
-          renderItem={renderHistoryItem}
-          keyExtractor={([key]) => key}
+          ref={flatListRef}
+          data={filteredSnapshots}
+          renderItem={renderHistorySnapshot}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ paddingVertical: 16, paddingBottom: 64 }}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={["#2FCA91"]}
+              tintColor="#2FCA91"
+            />
+          }
           showsVerticalScrollIndicator={false}
-          className="flex-1"
-          contentContainerStyle={{ paddingBottom: "6rem" }}
+          ListEmptyComponent={() => (
+            <View className="flex-1 justify-center items-center py-16">
+              <Text className="text-gray-400 text-center text-lg mb-2">
+                No readings available
+              </Text>
+              <Text className="text-gray-400 text-center text-sm">
+                Sensor data will appear here as its collected
+              </Text>
+            </View>
+          )}
         />
-        {/* <FlatList
-          data={Object.entries(data)}
-          keyExtractor={([key]) => key}
-          renderItem={({ item }) => {
-            const [sensorName, sensorData] = item;               
-            // console.log("item", item)
-            // console.log("data", sensorData)
-            // console.log("time", sensorData.time)
-            return (
-              <View style={{ padding: 10, borderBottomWidth: 1, borderColor: "#ccc" }}>    
-                <Text style={{ fontWeight: "bold", fontSize: 16 }}>{sensorName}</Text>
-                <Text>Value: {sensorData.value} {sensorData.unit}</Text>
-                <Text>Status: {sensorData.status}</Text>
-                <Text>Trend: {sensorData.trend}</Text>
-                <Text style={{ fontWeight: "bold", fontSize: 16 }}>{sensorData.time}</Text>
-              </View>
-            );
-          }}
-        />  */}
       </View>
     </SafeAreaView>
   );

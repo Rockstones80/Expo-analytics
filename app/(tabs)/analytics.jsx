@@ -105,7 +105,11 @@ const AnalyticsScreen = () => {
         timeframe === value ? "bg-[#2FCA91]" : "bg-white border border-gray-100"
       }`}
     >
-      <Text className={`${timeframe === value ? "text-white" : "text-gray-700"} text-sm font-medium`}>
+      <Text
+        className={`${
+          timeframe === value ? "text-white" : "text-gray-700"
+        } text-sm font-medium`}
+      >
         {title}
       </Text>
     </TouchableOpacity>
@@ -169,23 +173,23 @@ const AnalyticsScreen = () => {
               // onDataPointClick={handleDataPointPress}
               getDotColor={(dataPoint, dataPointIndex) => {
                 const value = dataPoint;
-                if (value > 25) return 'red';
-                if (value > 20) return 'orange';
-                return 'blue';
+                if (value > 25) return "red";
+                if (value > 20) return "orange";
+                return "blue";
               }}
               renderDotContent={({ x, y, index, indexData }) => (
                 <View
                   key={`dot-${index}`}
                   style={{
-                    position: 'absolute',
+                    position: "absolute",
                     top: y - 25,
                     left: x - 20,
-                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                    backgroundColor: "rgba(0, 0, 0, 0.7)",
                     padding: 4,
                     borderRadius: 4,
                   }}
                 >
-                  <Text style={{ color: 'white', fontSize: 12 }}>
+                  <Text style={{ color: "white", fontSize: 12 }}>
                     {indexData.toFixed(1)} L/min
                   </Text>
                 </View>
@@ -230,23 +234,23 @@ const AnalyticsScreen = () => {
               // onDataPointClick={handleDataPointPress}
               getDotColor={(dataPoint, dataPointIndex) => {
                 const value = dataPoint;
-                if (value > 70) return 'red';
-                if (value > 60) return 'orange';
-                return 'green';
+                if (value > 70) return "red";
+                if (value > 60) return "orange";
+                return "green";
               }}
               renderDotContent={({ x, y, index, indexData }) => (
                 <View
                   key={`dot-${index}`}
                   style={{
-                    position: 'absolute',
+                    position: "absolute",
                     top: y - 25,
                     left: x - 20,
-                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                    backgroundColor: "rgba(0, 0, 0, 0.7)",
                     padding: 4,
                     borderRadius: 4,
                   }}
                 >
-                  <Text style={{ color: 'white', fontSize: 10 }}>
+                  <Text style={{ color: "white", fontSize: 10 }}>
                     {indexData.toFixed(1)} cm
                   </Text>
                 </View>
@@ -292,23 +296,23 @@ const AnalyticsScreen = () => {
               // onDataPointClick={handleDataPointPress}
               getDotColor={(dataPoint, dataPointIndex) => {
                 const value = dataPoint;
-                if (value > 1013) return 'red';
-                if (value > 1010) return 'orange';
-                return 'blue';
+                if (value > 1013) return "red";
+                if (value > 1010) return "orange";
+                return "blue";
               }}
               renderDotContent={({ x, y, index, indexData }) => (
                 <View
                   key={`dot-${index}`}
                   style={{
-                    position: 'absolute',
+                    position: "absolute",
                     top: y - 25,
                     left: x - 20,
-                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                    backgroundColor: "rgba(0, 0, 0, 0.7)",
                     padding: 4,
                     borderRadius: 4,
                   }}
                 >
-                  <Text style={{ color: 'white', fontSize: 10 }}>
+                  <Text style={{ color: "white", fontSize: 10 }}>
                     {indexData.toFixed(1)} kPa
                   </Text>
                 </View>

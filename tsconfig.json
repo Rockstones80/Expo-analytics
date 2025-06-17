@@ -13,11 +13,11 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
-    "app/(tabs)/index.jsx",
-    "app/(tabs)/history.jsx",
-    "app/(tabs)/_layout.jsx",
-    "app/+not-found.jsx",
-    "app/_layout.jsx",
+    "app/(tabs)/index.tsx",
+    "app/(tabs)/history.tsx",
+    "app/(tabs)/_layout.tsx",
+    "app/+not-found.tsx",
+    "app/_layout.tsx",
     "nativewind-env.d.ts"
-, "hooks/useColorScheme.js", "hooks/useColorScheme.web.js", "hooks/useThemeColor.js"  ]
+, "hooks/useColorScheme.js", "hooks/useColorScheme.web.js", "hooks/useThemeColor.js", "app/(tabs)/analytics.jsx"  ]
 }
