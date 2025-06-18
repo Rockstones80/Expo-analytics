@@ -1,23 +1,44 @@
 import SensorCard from "@/components/SensorCard";
-import { useSensor } from "@/hooks/SensorContext";
+import { useSensor } from "@/hooks/sensorContext";
 import { Ionicons } from "@expo/vector-icons";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import React, { memo, useMemo } from "react";
 import {
   ActivityIndicator,
   ScrollView,
+  StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+interface StatusCardProps {
+  lastUpdate: string | null;
+}
+
+interface DashboardHeaderProps {
+  notificationsEnabled: boolean;
+  onToggleNotifications: () => void;
+}
+
+interface SensorValues {
+  value: number;
+  status: string;
+  trend?: string;
+}
+
+interface SensorValueMap {
+  flowRate: SensorValues;
+  waterPressure: SensorValues;
+  waterLevel: SensorValues;
+}
 
 // Memoize the SensorCard to prevent unnecessary re-renders
 const MemoizedSensorCard = memo(SensorCard);
 
 // Memoize the status card component
-const StatusCard = memo(({ lastUpdate }) => (
+const StatusCard: React.FC<StatusCardProps> = memo(({ lastUpdate }) => (
   <View className="bg-[#2FCA91] rounded-2xl shadow-md shadow-gray-100 p-4 mb-8 w-1/2">
     <Text className="text-lg font-bold text-white mb-3">System Status</Text>
     <View className="flex-row items-center mb-4">
@@ -30,7 +51,7 @@ const StatusCard = memo(({ lastUpdate }) => (
 StatusCard.displayName = "StatusCard";
 
 // Memoize the header component
-const DashboardHeader = memo(
+const DashboardHeader: React.FC<DashboardHeaderProps> = memo(
   ({ notificationsEnabled, onToggleNotifications }) => (
     <View className="justify-between flex-row items-center mb-4">
       <Text className="text-3xl font-bold text-black">Dashboard</Text>
@@ -49,7 +70,13 @@ const DashboardHeader = memo(
 );
 DashboardHeader.displayName = "DashboardHeader";
 
-const DashboardScreen = () => {
+const styles = StyleSheet.create({
+  scrollContent: {
+    paddingBottom: 64, // 4rem in pixels
+  },
+});
+
+const DashboardScreen: React.FC = () => {
   const {
     sensorData,
     loading,
@@ -60,21 +87,21 @@ const DashboardScreen = () => {
   } = useSensor();
 
   // Memoize sensor values to prevent unnecessary recalculations
-  const sensorValues = useMemo(
+  const sensorValues = useMemo<SensorValueMap>(
     () => ({
       flowRate: {
-        value: sensorData?.flowRate?.value,
-        status: sensorData?.flowRate?.status,
+        value: sensorData?.flowRate?.value ?? 0,
+        status: sensorData?.flowRate?.status ?? "normal",
         trend: sensorData?.flowRate?.trend,
       },
       waterPressure: {
-        value: sensorData?.waterPressure?.value,
-        status: sensorData?.waterPressure?.status,
+        value: sensorData?.waterPressure?.value ?? 0,
+        status: sensorData?.waterPressure?.status ?? "normal",
         trend: sensorData?.waterPressure?.trend,
       },
       waterLevel: {
-        value: sensorData?.clogDetection?.value,
-        status: sensorData?.clogDetection?.status,
+        value: sensorData?.clogDetection?.value ?? 0,
+        status: sensorData?.clogDetection?.status ?? "normal",
         trend: sensorData?.clogDetection?.trend,
       },
     }),
@@ -112,7 +139,7 @@ const DashboardScreen = () => {
     <SafeAreaView className="flex-1 bg-white">
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingBottom: 64 }}
+        contentContainerStyle={styles.scrollContent}
       >
         <View className="p-5">
           <DashboardHeader

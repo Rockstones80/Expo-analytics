@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   Dimensions,
   ScrollView,
+  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -9,23 +10,43 @@ import {
 import { LineChart } from "react-native-chart-kit";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const AnalyticsScreen = () => {
-  const [timeframe, setTimeframe] = useState("hourly"); // 'hourly', 'daily', 'weekly'
+type Timeframe = "hourly" | "daily" | "weekly";
+
+interface TimeframeData {
+  hourly: number[];
+  daily: number[];
+  weekly: number[];
+}
+
+interface TimeframeButtonProps {
+  title: string;
+  value: Timeframe;
+}
+
+interface ChartDataPoint {
+  x: number;
+  y: number;
+  index: number;
+  indexData: number;
+}
+
+const AnalyticsScreen: React.FC = () => {
+  const [timeframe, setTimeframe] = useState<Timeframe>("hourly");
 
   // Sample data for different timeframes
-  const [flowRateData] = useState({
+  const [flowRateData] = useState<TimeframeData>({
     hourly: [22.5, 23.1, 24.8, 25.3, 25.7, 24.9, 23.4],
     daily: [22.5, 23.1, 24.8, 25.3, 25.7, 24.9, 23.4],
     weekly: [22.5, 23.1, 24.8, 25.3, 25.7, 24.9, 23.4],
   });
 
-  const [waterLevelData] = useState({
+  const [waterLevelData] = useState<TimeframeData>({
     hourly: [65, 67, 70, 72, 75, 73, 71],
     daily: [65, 67, 70, 72, 75, 73, 71],
     weekly: [65, 67, 70, 72, 75, 73, 71],
   });
 
-  const [waterPressureData] = useState({
+  const [waterPressureData] = useState<TimeframeData>({
     hourly: [1010, 1011, 1012, 1013, 1014, 1013, 1012],
     daily: [1010, 1011, 1012, 1013, 1014, 1013, 1012],
     weekly: [1010, 1011, 1012, 1013, 1014, 1013, 1012],
@@ -36,8 +57,8 @@ const AnalyticsScreen = () => {
   const chartHeight = 200;
 
   // Generate labels based on timeframe
-  const generateLabels = () => {
-    const labels = [];
+  const generateLabels = (): string[] => {
+    const labels: string[] = [];
     const now = new Date();
 
     switch (timeframe) {
@@ -53,12 +74,6 @@ const AnalyticsScreen = () => {
           labels.push(dayAgo.toLocaleDateString("en-US", { weekday: "short" }));
         }
         break;
-      // case "weekly":
-      //   for (let i = 6; i >= 0; i--) {
-      //     const weekAgo = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
-      //     labels.push("Week " + (i + 1));
-      //   }
-      //   break;
     }
     return labels;
   };
@@ -89,7 +104,6 @@ const AnalyticsScreen = () => {
       fontSize: 12,
       fontWeight: "400",
     },
-    // Add tooltip configuration
     propsForVerticalLabels: {
       fontSize: 10,
     },
@@ -98,7 +112,10 @@ const AnalyticsScreen = () => {
     },
   };
 
-  const TimeframeButton = ({ title, value }) => (
+  const TimeframeButton: React.FC<TimeframeButtonProps> = ({
+    title,
+    value,
+  }) => (
     <TouchableOpacity
       onPress={() => setTimeframe(value)}
       className={`px-5 py-2 rounded-2xl shadow-md shadow-gray-100 mr-2 ${
@@ -115,15 +132,36 @@ const AnalyticsScreen = () => {
     </TouchableOpacity>
   );
 
-  const handleDataPointPress = (dataPoint, index) => {
-    console.log(`Data point clicked: ${dataPoint} at index ${index}`);
-  };
+  // const handleDataPointPress = (dataPoint: number, index: number): void => {
+  //   console.log(`Data point clicked: ${dataPoint} at index ${index}`);
+  // };
+
+  const styles = StyleSheet.create({
+    scrollContent: {
+      paddingBottom: 96, // 6rem in pixels
+    },
+    chartStyle: {
+      marginVertical: 4,
+      borderRadius: 16,
+      marginLeft: -20,
+    },
+    dotContent: {
+      position: "absolute",
+      backgroundColor: "rgba(0, 0, 0, 0.7)",
+      padding: 4,
+      borderRadius: 4,
+    },
+    dotText: {
+      color: "white",
+      fontSize: 12,
+    },
+  });
 
   return (
     <SafeAreaView className="flex-1 bg-white">
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingBottom: "6rem" }}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         <View className="p-4">
@@ -133,10 +171,9 @@ const AnalyticsScreen = () => {
           <View className="flex-row mb-8">
             <TimeframeButton title="Hourly" value="hourly" />
             <TimeframeButton title="Daily" value="daily" />
-            {/* <TimeframeButton title="Weekly" value="weekly" /> */}
           </View>
 
-          {/* Temperature Graph Card */}
+          {/* Flow Rate Graph Card */}
           <View className="bg-white rounded-xl shadow-md shadow-gray-200 p-4 mb-6">
             <Text className="text-lg font-bold text-[#0A1931] mb-2">
               Flow Rate(L/min)
@@ -160,36 +197,23 @@ const AnalyticsScreen = () => {
                 color: (opacity = 1) => `rgba(59, 130, 246, ${opacity})`,
               }}
               bezier
-              style={{
-                marginVertical: 4,
-                borderRadius: 16,
-                marginLeft: -20,
-              }}
+              style={styles.chartStyle}
               withInnerLines={true}
               withOuterLines={true}
               withVerticalLines={true}
               withHorizontalLines={true}
               fromZero={false}
-              // onDataPointClick={handleDataPointPress}
-              getDotColor={(dataPoint, dataPointIndex) => {
-                const value = dataPoint;
-                if (value > 25) return "red";
-                if (value > 20) return "orange";
+              getDotColor={(dataPoint: number) => {
+                if (dataPoint > 25) return "red";
+                if (dataPoint > 20) return "orange";
                 return "blue";
               }}
-              renderDotContent={({ x, y, index, indexData }) => (
+              renderDotContent={({ x, y, indexData }: ChartDataPoint) => (
                 <View
-                  key={`dot-${index}`}
-                  style={{
-                    position: "absolute",
-                    top: y - 25,
-                    left: x - 20,
-                    backgroundColor: "rgba(0, 0, 0, 0.7)",
-                    padding: 4,
-                    borderRadius: 4,
-                  }}
+                  key={`dot-${indexData}`}
+                  style={[styles.dotContent, { top: y - 25, left: x - 20 }]}
                 >
-                  <Text style={{ color: "white", fontSize: 12 }}>
+                  <Text style={styles.dotText}>
                     {indexData.toFixed(1)} L/min
                   </Text>
                 </View>
@@ -197,7 +221,7 @@ const AnalyticsScreen = () => {
             />
           </View>
 
-          {/* Humidity Graph Card */}
+          {/* Water Level Graph Card */}
           <View className="bg-white rounded-xl shadow-md shadow-gray-200 p-4 mb-6">
             <Text className="text-lg font-bold text-[#0A1931] mb-2">
               Water Level(cm)
@@ -221,45 +245,30 @@ const AnalyticsScreen = () => {
                 color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
               }}
               bezier
-              style={{
-                marginVertical: 4,
-                borderRadius: 16,
-                marginLeft: -20,
-              }}
+              style={styles.chartStyle}
               withInnerLines={true}
               withOuterLines={true}
               withVerticalLines={true}
               withHorizontalLines={true}
               fromZero={false}
-              // onDataPointClick={handleDataPointPress}
-              getDotColor={(dataPoint, dataPointIndex) => {
-                const value = dataPoint;
-                if (value > 70) return "red";
-                if (value > 60) return "orange";
+              getDotColor={(dataPoint: number) => {
+                if (dataPoint > 70) return "red";
+                if (dataPoint > 60) return "orange";
                 return "green";
               }}
-              renderDotContent={({ x, y, index, indexData }) => (
+              renderDotContent={({ x, y, indexData }: ChartDataPoint) => (
                 <View
-                  key={`dot-${index}`}
-                  style={{
-                    position: "absolute",
-                    top: y - 25,
-                    left: x - 20,
-                    backgroundColor: "rgba(0, 0, 0, 0.7)",
-                    padding: 4,
-                    borderRadius: 4,
-                  }}
+                  key={`dot-${indexData}`}
+                  style={[styles.dotContent, { top: y - 25, left: x - 20 }]}
                 >
-                  <Text style={{ color: "white", fontSize: 10 }}>
-                    {indexData.toFixed(1)} cm
-                  </Text>
+                  <Text style={styles.dotText}>{indexData.toFixed(1)} cm</Text>
                 </View>
               )}
             />
           </View>
 
-          {/* Pressure Graph Card */}
-          <View className="bg-white rounded-xl shadow-md shadow-gray-200 p-4 mb-4">
+          {/* Water Pressure Graph Card */}
+          <View className="bg-white rounded-xl shadow-md shadow-gray-200 p-4 mb-6">
             <Text className="text-lg font-bold text-[#0A1931] mb-2">
               Water Pressure(kPa)
             </Text>
@@ -269,7 +278,7 @@ const AnalyticsScreen = () => {
                 datasets: [
                   {
                     data: waterPressureData[timeframe],
-                    color: (opacity = 1) => `rgba(139, 92, 246, ${opacity})`,
+                    color: (opacity = 1) => `rgba(245, 158, 11, ${opacity})`,
                     strokeWidth: 3,
                   },
                 ],
@@ -279,42 +288,26 @@ const AnalyticsScreen = () => {
               yAxisSuffix=""
               chartConfig={{
                 ...chartConfig,
-                color: (opacity = 1) => `rgba(139, 92, 246, ${opacity})`,
-                decimalPlaces: 0,
+                color: (opacity = 1) => `rgba(245, 158, 11, ${opacity})`,
               }}
               bezier
-              style={{
-                marginVertical: 4,
-                borderRadius: 16,
-                marginLeft: -20,
-              }}
+              style={styles.chartStyle}
               withInnerLines={true}
               withOuterLines={true}
               withVerticalLines={true}
               withHorizontalLines={true}
               fromZero={false}
-              // onDataPointClick={handleDataPointPress}
-              getDotColor={(dataPoint, dataPointIndex) => {
-                const value = dataPoint;
-                if (value > 1013) return "red";
-                if (value > 1010) return "orange";
-                return "blue";
+              getDotColor={(dataPoint: number) => {
+                if (dataPoint > 1013) return "red";
+                if (dataPoint > 1011) return "orange";
+                return "yellow";
               }}
-              renderDotContent={({ x, y, index, indexData }) => (
+              renderDotContent={({ x, y, indexData }: ChartDataPoint) => (
                 <View
-                  key={`dot-${index}`}
-                  style={{
-                    position: "absolute",
-                    top: y - 25,
-                    left: x - 20,
-                    backgroundColor: "rgba(0, 0, 0, 0.7)",
-                    padding: 4,
-                    borderRadius: 4,
-                  }}
+                  key={`dot-${indexData}`}
+                  style={[styles.dotContent, { top: y - 25, left: x - 20 }]}
                 >
-                  <Text style={{ color: "white", fontSize: 10 }}>
-                    {indexData.toFixed(1)} kPa
-                  </Text>
+                  <Text style={styles.dotText}>{indexData.toFixed(1)} kPa</Text>
                 </View>
               )}
             />

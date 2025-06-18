@@ -1,34 +1,53 @@
-import { useSensor } from "@/hooks/SensorContext";
+import { useSensor } from "@/hooks/sensorContext";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  ListRenderItem,
   RefreshControl,
+  StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+interface HistorySnapshot {
+  id: string;
+  timestamp: number;
+  date: string;
+  time: string;
+  sensors: Record<
+    string,
+    {
+      value: number;
+      unit: string;
+      status: string;
+      trend?: string;
+    }
+  >;
+}
 
+interface TimeFilterButtonProps {
+  title: string;
+  value: string;
+}
 
-const HistoryScreen = () => {
-  const [timeFilter, setTimeFilter] = ("all");
+const HistoryScreen: React.FC = () => {
+  const [timeFilter, setTimeFilter] = useState<string>("all");
   const [refreshing, setRefreshing] = useState(false);
-  const [historySnapshots, setHistorySnapshots] = useState([]);
-  const [expandedItems, setExpandedItems] = useState(new Set());
+  const [historySnapshots, setHistorySnapshots] = useState<HistorySnapshot[]>(
+    []
+  );
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const { sensorData, loading, error } = useSensor();
 
-  // Ref for the FlatList to control scrolling
-  const flatListRef = useRef(null);
+  const flatListRef = useRef<FlatList<HistorySnapshot>>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
 
-  // Store complete sensor snapshots whenever data updates
   useEffect(() => {
     if (sensorData && Object.keys(sensorData).length > 0) {
       const currentTime = new Date();
-      const snapshot = {
+      const snapshot: HistorySnapshot = {
         id: `snapshot-${currentTime.getTime()}-${Math.random()}`,
         timestamp: currentTime.getTime(),
         date: currentTime.toLocaleDateString(),
@@ -53,7 +72,6 @@ const HistoryScreen = () => {
     }
   }, [sensorData, shouldAutoScroll]);
 
-  // Filter snapshots based on time selection
   const filteredSnapshots = useMemo(() => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -89,12 +107,12 @@ const HistoryScreen = () => {
     }, 1000);
   }, []);
 
-  const handleScroll = (event) => {
+  const handleScroll = (event: any) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     setShouldAutoScroll(offsetY < 50);
   };
 
-  const toggleExpanded = (itemId) => {
+  const toggleExpanded = (itemId: string) => {
     setExpandedItems((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(itemId)) {
@@ -106,7 +124,7 @@ const HistoryScreen = () => {
     });
   };
 
-  const TimeFilterButton = ({
+  const TimeFilterButton: React.FC<TimeFilterButtonProps> = ({
     title,
     value,
   }) => (
@@ -133,7 +151,7 @@ const HistoryScreen = () => {
     </TouchableOpacity>
   );
 
-  const getStatusColor = (status) => {
+  const getStatusColor = (status?: string): string => {
     switch (status?.toLowerCase()) {
       case "normal":
         return "text-green-600";
@@ -146,7 +164,7 @@ const HistoryScreen = () => {
     }
   };
 
-  const getStatusBgColor = (status) => {
+  const getStatusBgColor = (status?: string): string => {
     switch (status?.toLowerCase()) {
       case "normal":
         return "bg-green-50 border-green-200";
@@ -162,6 +180,9 @@ const HistoryScreen = () => {
   const renderHistorySnapshot = ({
     item,
     index,
+  }: {
+    item: HistorySnapshot;
+    index: number;
   }) => {
     const isExpanded = expandedItems.has(item.id);
     const sensors = Object.entries(item.sensors);
@@ -267,17 +288,10 @@ const HistoryScreen = () => {
                     </Text>
                     <Text className="text-lg text-gray-600">{data.unit}</Text>
                   </View>
-
-                  {data.additionalInfo && (
-                    <View className="mt-2 pt-2 border-t border-gray-200">
-                      <Text className="text-xs text-gray-500">
-                        Additional Info: {data.additionalInfo}
-                      </Text>
-                    </View>
-                  )}
                 </View>
               ))}
 
+              {/* Timestamp details */}
               <View className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                 <Text className="text-sm font-medium text-blue-800 mb-1">
                   Recording Details
@@ -373,7 +387,7 @@ const HistoryScreen = () => {
           data={filteredSnapshots}
           renderItem={renderHistorySnapshot}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingVertical: 16, paddingBottom: 64 }}
+          contentContainerStyle={styles.listContent}
           onScroll={handleScroll}
           scrollEventThrottle={16}
           refreshControl={
@@ -400,5 +414,12 @@ const HistoryScreen = () => {
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  listContent: {
+    paddingVertical: 16,
+    paddingBottom: 80, // 5rem in pixels
+  },
+});
 
 export default HistoryScreen;

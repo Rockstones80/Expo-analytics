@@ -12,15 +12,36 @@ import React, {
 
 const API_URL = "http://localhost:5000";
 
-const SensorContext = createContext();
+interface SensorData {
+  value: number;
+  unit: string;
+  status: "normal" | "warning" | "critical";
+  trend?: "up" | "down" | "stable";
+}
+
+interface SensorContextType {
+  sensorData: Record<string, SensorData>;
+  loading: boolean;
+  error: string | null;
+  lastUpdate: string | null;
+  refreshData: () => Promise<void>;
+  notificationsEnabled: boolean;
+  setNotificationsEnabled: (enabled: boolean) => void;
+}
+
+const SensorContext = createContext<SensorContextType | undefined>(undefined);
 
 const POLLING_INTERVAL = 5000; // 5 seconds
 
-export const SensorProvider = ({ children }) => {
-  const [sensorData, setSensorData] = useState({});
+interface SensorProviderProps {
+  children: React.ReactNode;
+}
+
+export const SensorProvider: React.FC<SensorProviderProps> = ({ children }) => {
+  const [sensorData, setSensorData] = useState<Record<string, SensorData>>({});
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [lastUpdate, setLastUpdate] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [lastUpdate, setLastUpdate] = useState<string | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   // Initialize notifications
@@ -36,8 +57,10 @@ export const SensorProvider = ({ children }) => {
     try {
       setLoading(true);
       const response = await fetch(`${API_URL}/api/sensors`);
-      const result = await response.json();
-      console.log(result.sensors)
+      const result = (await response.json()) as {
+        sensors: Record<string, SensorData>;
+      };
+      console.log(result.sensors);
 
       // Check thresholds and send notifications if enabled
       if (notificationsEnabled) {
@@ -51,7 +74,7 @@ export const SensorProvider = ({ children }) => {
       setLastUpdate(new Date().toLocaleString());
     } catch (error) {
       console.error("Error fetching data:", error);
-      setError(error.message);
+      setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
       setLoading(false);
     }
@@ -61,9 +84,9 @@ export const SensorProvider = ({ children }) => {
     fetchSensorData();
     const interval = setInterval(fetchSensorData, POLLING_INTERVAL);
     return () => clearInterval(interval);
-  }, [notificationsEnabled, fetchSensorData]);
+  }, [fetchSensorData]);
 
-  const value = {
+  const value: SensorContextType = {
     sensorData,
     loading,
     error,
@@ -78,7 +101,7 @@ export const SensorProvider = ({ children }) => {
   );
 };
 
-export const useSensor = () => {
+export const useSensor = (): SensorContextType => {
   const context = useContext(SensorContext);
   if (context === undefined) {
     throw new Error("useSensor must be used within a SensorProvider");
